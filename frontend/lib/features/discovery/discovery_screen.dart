@@ -70,7 +70,7 @@ class DiscoveryScreen extends StatelessWidget {
                       const SizedBox(height: AppSpacing.md),
 
                       DeviceTile(
-                        deviceName: "Rahul's Laptop",
+                        deviceName: "Prem's Laptop",
                         deviceType: "Laptop",
                         onTap: () {
                           Navigator.push(
