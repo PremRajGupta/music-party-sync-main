@@ -273,6 +273,14 @@ fn read_http_request(stream: &mut TcpStream) -> std::io::Result<String> {
         .and_then(|v| v.trim().parse().ok())
         .unwrap_or(0);
 
+    // Limit body size to 1MB to prevent OOM on malicious requests
+    if content_length > 1_048_576 {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Payload too large",
+        ));
+    }
+
     // We may have already read some body bytes beyond the header.
     let already_read = raw.len() - header_end;
     if content_length > already_read {
