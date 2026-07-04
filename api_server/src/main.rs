@@ -73,6 +73,7 @@ fn handle_client(mut stream: TcpStream, rooms: Rooms) -> std::io::Result<()> {
         ("GET", "/api/health") => write_response(&mut stream, 200, "OK", "{\"status\":\"ok\"}"),
         ("POST", "/api/rooms/create") => create_room(&mut stream, body, rooms),
         ("POST", "/api/rooms/join") => join_room(&mut stream, body, rooms),
+        ("POST", "/api/rooms/delete") => delete_room(&mut stream, body, rooms),
         ("GET", path) if path.starts_with("/api/rooms/") => get_room(&mut stream, path, rooms),
         _ => write_response(
             &mut stream,
@@ -85,18 +86,24 @@ fn handle_client(mut stream: TcpStream, rooms: Rooms) -> std::io::Result<()> {
 
 fn sync_with_node(room: &Room) {
     let body = room_json(room);
+    let node_addr = std::env::var("NODE_SYNC_ADDR").unwrap_or_else(|_| "127.0.0.1:5001".to_string());
+    
+    // Extract host name for the Host header (e.g. "music-party-socket:10000" -> "music-party-socket")
+    let host_header = node_addr.split(':').next().unwrap_or("127.0.0.1");
+
     let request = format!(
-        "POST /api/rooms/sync HTTP/1.1\r\nHost: 127.0.0.1:5001\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        "POST /api/rooms/sync HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        host_header,
         body.len(),
         body
     );
 
-    if let Ok(mut stream) = TcpStream::connect("127.0.0.1:5001") {
+    if let Ok(mut stream) = TcpStream::connect(&node_addr) {
         let _ = stream.write_all(request.as_bytes());
         let _ = stream.flush();
-        println!("🚀 Room successfully synced to Node.js socket server: {}", room.room_id);
+        println!("🚀 Room successfully synced to Node.js socket server: {} (addr: {})", room.room_id, node_addr);
     } else {
-        eprintln!("❌ Failed to connect to Node.js socket server for sync");
+        eprintln!("❌ Failed to connect to Node.js socket server for sync (addr: {})", node_addr);
     }
 }
 
@@ -125,6 +132,29 @@ fn create_room(stream: &mut TcpStream, body: &str, rooms: Rooms) -> std::io::Res
     sync_with_node(&room);
 
     write_response(stream, 200, "OK", &room_json(&room))
+}
+
+fn delete_room(stream: &mut TcpStream, body: &str, rooms: Rooms) -> std::io::Result<()> {
+    let room_id_raw = json_string_value(body, "roomId").unwrap_or_default();
+    let normalized_id = room_id_raw.trim().to_uppercase();
+
+    println!("📥 Room deletion request received: {}", normalized_id);
+
+    if !normalized_id.is_empty() {
+        let mut rooms_lock = rooms.lock().expect("rooms lock poisoned");
+        rooms_lock.remove(&normalized_id);
+        
+        if !normalized_id.starts_with("SB-") {
+            let prefixed = format!("SB-{}", normalized_id);
+            rooms_lock.remove(&prefixed);
+        } else {
+            let unprefixed = normalized_id[3..].to_string();
+            rooms_lock.remove(&unprefixed);
+        }
+        println!("🗑️ Room deleted successfully from Rust memory: {}", normalized_id);
+    }
+
+    write_response(stream, 200, "OK", "{\"success\":true}")
 }
 
 fn join_room(stream: &mut TcpStream, body: &str, rooms: Rooms) -> std::io::Result<()> {

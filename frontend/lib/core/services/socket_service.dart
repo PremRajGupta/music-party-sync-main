@@ -30,7 +30,10 @@ class SocketService {
   }
 
   void joinRoom(String roomId) {
-    socket.emit("join-room", roomId);
+    socket.emit("join-room", {
+      "roomId": roomId,
+      "userName": userName,
+    });
   }
 
   void leaveRoom(String roomId) {
@@ -99,6 +102,15 @@ class SocketService {
 
   void onLocalSongChanged(Function(dynamic) callback) {
     socket.on("media-local-change-broadcast", callback);
+  }
+
+  void onRoomCancelled(Function() callback) {
+    socket.off("room-cancelled");
+    socket.on("room-cancelled", (_) => callback());
+  }
+
+  void offRoomCancelled() {
+    socket.off("room-cancelled");
   }
 
   void dispose() {

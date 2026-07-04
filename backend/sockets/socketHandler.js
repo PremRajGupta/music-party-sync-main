@@ -4,10 +4,36 @@ module.exports = (io) => {
   io.on("connection", (socket) => {
     console.log(`✅ User Connected: ${socket.id}`);
 
+    const handleUserLeaving = (roomId) => {
+      if (!roomId || !rooms[roomId]) return;
+      const room = rooms[roomId];
+      
+      if (socket.userName && socket.userName === room.hostName) {
+        console.log(`📢 Host ${socket.userName} left/disconnected. Cancelling room ${roomId}`);
+        io.to(roomId).emit("room-cancelled");
+        delete rooms[roomId];
+        saveRooms(rooms);
+      }
+    };
+
     // Join a Room
-    socket.on("join-room", (roomId) => {
+    socket.on("join-room", (data) => {
+      let roomId = data;
+      let userName = null;
+      if (typeof data === "object" && data !== null) {
+        roomId = data.roomId;
+        userName = data.userName;
+      }
+
       socket.join(roomId);
       console.log(`📥 Socket ${socket.id} joined room ${roomId}`);
+      
+      if (roomId) {
+        socket.roomId = roomId;
+      }
+      if (userName) {
+        socket.userName = userName;
+      }
       
       // Request current playback status from the Host so the guest is synced immediately
       socket.to(roomId).emit("request-host-sync", roomId);
@@ -15,6 +41,7 @@ module.exports = (io) => {
 
     // Leave a Room
     socket.on("leave-room", (roomId) => {
+      handleUserLeaving(roomId);
       socket.leave(roomId);
       console.log(`📤 Socket ${socket.id} left room ${roomId}`);
     });
@@ -73,6 +100,9 @@ module.exports = (io) => {
     // Disconnect
     socket.on("disconnect", () => {
       console.log(`❌ User Disconnected: ${socket.id}`);
+      if (socket.roomId) {
+        handleUserLeaving(socket.roomId);
+      }
     });
   });
 };

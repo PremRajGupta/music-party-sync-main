@@ -41,4 +41,15 @@ class RoomService {
 
     return Room.fromJson(response.data["room"]);
   }
+
+  static Future<void> deleteRoom(String roomId) async {
+    try {
+      await ApiService.dio.post(
+        '/rooms/delete',
+        data: {'roomId': roomId},
+      );
+    } catch (e) {
+      // ignore
+    }
+  }
 }

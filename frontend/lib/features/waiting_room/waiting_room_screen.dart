@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/services/socket_service.dart';
+import '../../core/services/room_service.dart';
 import '../../models/room.dart';
 import '../../shared/widgets/page_background.dart';
 import '../../shared/widgets/participant_tile.dart';
@@ -52,10 +53,25 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         ),
       );
     });
+
+    SocketService.instance.onRoomCancelled(() {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("The host has closed this room."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    });
   }
 
   @override
   void dispose() {
+    final isHost = SocketService.instance.userName == room.hostName;
+    if (isHost) {
+      RoomService.deleteRoom(room.roomId);
+    }
     SocketService.instance.leaveRoom(room.roomId);
     SocketService.instance.dispose();
     super.dispose();

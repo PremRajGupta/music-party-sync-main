@@ -204,6 +204,18 @@ class _PlayerScreenState extends State<PlayerScreen>
       });
     }
 
+    SocketService.instance.onRoomCancelled(() {
+      if (!mounted) return;
+      _audioPlayer.pause();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("The host has closed this room."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    });
+
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 18),
@@ -518,6 +530,13 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
+    final isHost = SocketService.instance.userName == room.hostName;
+    if (isHost) {
+      RoomService.deleteRoom(room.roomId);
+    }
+    SocketService.instance.leaveRoom(room.roomId);
+    SocketService.instance.disconnect();
+
     _audioPlayer.dispose();
     _rotationController.dispose();
     _pulseController.dispose();
