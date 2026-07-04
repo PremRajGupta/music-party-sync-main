@@ -1,5 +1,6 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../config/app_config.dart';
 
 class SocketService {
@@ -7,6 +8,9 @@ class SocketService {
 
   late IO.Socket socket;
   String? userName;
+  
+  final StreamController<bool> _connectionStateController = StreamController<bool>.broadcast();
+  Stream<bool> get connectionStateStream => _connectionStateController.stream;
 
   SocketService._internal();
 
@@ -26,10 +30,12 @@ class SocketService {
 
     socket.onConnect((_) {
       debugPrint("✅ Socket Connected");
+      _connectionStateController.add(true);
     });
 
     socket.onDisconnect((_) {
       debugPrint("❌ Socket Disconnected");
+      _connectionStateController.add(false);
     });
 
     socket.onConnectError((e) {
@@ -145,6 +151,7 @@ class SocketService {
   }
 
   void dispose() {
+    _connectionStateController.close();
     socket.dispose();
   }
 }
