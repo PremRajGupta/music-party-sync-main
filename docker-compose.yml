@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  api_server:
+    build:
+      context: ./api_server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - ECHOSYNC_API_ADDR=0.0.0.0:5000
+      - NODE_SYNC_ADDR=socket_server:5001
+    depends_on:
+      - socket_server
+
+  socket_server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001

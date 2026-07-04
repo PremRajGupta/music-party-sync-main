@@ -1,34 +1,11 @@
 const { v4: uuidv4 } = require("uuid");
 const { getIO } = require("../services/socketService");
-const fs = require("fs");
-const path = require("path");
 
-const roomsFile = path.join(__dirname, "rooms.json");
+// Pure in-memory rooms storage to prevent blocking the event loop
+const rooms = {};
 
-// Helper to load rooms from file
-const loadRooms = () => {
-  try {
-    if (fs.existsSync(roomsFile)) {
-      const data = fs.readFileSync(roomsFile, "utf8");
-      return JSON.parse(data);
-    }
-  } catch (err) {
-    console.error("❌ Failed to load rooms from file:", err);
-  }
-  return {};
-};
-
-// Helper to save rooms to file
-const saveRooms = (roomsData) => {
-  try {
-    fs.writeFileSync(roomsFile, JSON.stringify(roomsData, null, 2), "utf8");
-  } catch (err) {
-    console.error("❌ Failed to save rooms to file:", err);
-  }
-};
-
-// Load initial rooms
-const rooms = loadRooms();
+// Helper to save rooms (no-op since we are purely in-memory)
+const saveRooms = (roomsData) => {};
 
 const createRoom = (req, res) => {
   const { roomName, hostName } = req.body;

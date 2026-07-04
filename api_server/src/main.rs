@@ -124,7 +124,10 @@ fn create_room(stream: &mut TcpStream, body: &str, rooms: Rooms) -> std::io::Res
         }],
     };
 
-    rooms.lock().expect("rooms lock poisoned").insert(room_id.clone(), room.clone());
+    match rooms.lock() {
+        Ok(mut lock) => { lock.insert(room_id.clone(), room.clone()); }
+        Err(poisoned) => { poisoned.into_inner().insert(room_id.clone(), room.clone()); }
+    };
 
     println!("✅ Room created successfully in memory: {}", room_id);
     
@@ -141,15 +144,12 @@ fn delete_room(stream: &mut TcpStream, body: &str, rooms: Rooms) -> std::io::Res
     println!("📥 Room deletion request received: {}", normalized_id);
 
     if !normalized_id.is_empty() {
-        let mut rooms_lock = rooms.lock().expect("rooms lock poisoned");
+        let mut rooms_lock = rooms.lock().unwrap_or_else(|p| p.into_inner());
         rooms_lock.remove(&normalized_id);
-        
         if !normalized_id.starts_with("SB-") {
-            let prefixed = format!("SB-{}", normalized_id);
-            rooms_lock.remove(&prefixed);
+            rooms_lock.remove(&format!("SB-{}", normalized_id));
         } else {
-            let unprefixed = normalized_id[3..].to_string();
-            rooms_lock.remove(&unprefixed);
+            rooms_lock.remove(&normalized_id[3..].to_string());
         }
         println!("🗑️ Room deleted successfully from Rust memory: {}", normalized_id);
     }
@@ -168,7 +168,7 @@ fn join_room(stream: &mut TcpStream, body: &str, rooms: Rooms) -> std::io::Resul
         return write_response(stream, 400, "Bad Request", "{\"error\":\"Missing roomId or userName\"}");
     }
 
-    let mut rooms_lock = rooms.lock().expect("rooms lock poisoned");
+    let mut rooms_lock = rooms.lock().unwrap_or_else(|p| p.into_inner());
     let normalized_id = room_id_raw.trim().to_uppercase();
     let mut target_id = String::new();
 
@@ -217,7 +217,7 @@ fn join_room(stream: &mut TcpStream, body: &str, rooms: Rooms) -> std::io::Resul
 
 fn get_room(stream: &mut TcpStream, path: &str, rooms: Rooms) -> std::io::Result<()> {
     let room_id = path.trim_start_matches("/api/rooms/");
-    let mut rooms_lock = rooms.lock().expect("rooms lock poisoned");
+    let rooms_lock = rooms.lock().unwrap_or_else(|p| p.into_inner());
 
     let normalized_id = room_id.trim().to_uppercase();
     let mut target_id = String::new();
@@ -244,9 +244,45 @@ fn get_room(stream: &mut TcpStream, path: &str, rooms: Rooms) -> std::io::Result
 }
 
 fn read_http_request(stream: &mut TcpStream) -> std::io::Result<String> {
-    let mut buffer = [0; 4096];
-    let bytes_read = stream.read(&mut buffer)?;
-    Ok(String::from_utf8_lossy(&buffer[..bytes_read]).to_string())
+    // Phase 1: read until we have the full header block (\r\n\r\n).
+    stream.set_read_timeout(Some(std::time::Duration::from_secs(5)))?;
+    let mut raw: Vec<u8> = Vec::with_capacity(4096);
+    let mut tmp = [0u8; 1024];
+    let header_end = loop {
+        let n = stream.read(&mut tmp)?;
+        if n == 0 {
+            return Ok(String::new());
+        }
+        raw.extend_from_slice(&tmp[..n]);
+        // Look for the header/body separator.
+        if let Some(pos) = raw.windows(4).position(|w| w == b"\r\n\r\n") {
+            break pos + 4; // first byte of body
+        }
+        if raw.len() > 32_768 {
+            // Headers too large — bail out.
+            return Ok(String::new());
+        }
+    };
+
+    // Phase 2: read exactly Content-Length body bytes (if present).
+    let headers_str = String::from_utf8_lossy(&raw[..header_end]).to_lowercase();
+    let content_length: usize = headers_str
+        .lines()
+        .find(|l| l.starts_with("content-length:"))
+        .and_then(|l| l.split(':').nth(1))
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(0);
+
+    // We may have already read some body bytes beyond the header.
+    let already_read = raw.len() - header_end;
+    if content_length > already_read {
+        let remaining = content_length - already_read;
+        let mut body_buf = vec![0u8; remaining];
+        stream.read_exact(&mut body_buf)?;
+        raw.extend_from_slice(&body_buf);
+    }
+
+    Ok(String::from_utf8_lossy(&raw).to_string())
 }
 
 fn write_response(stream: &mut TcpStream, status_code: u16, status_text: &str, body: &str) -> std::io::Result<()> {

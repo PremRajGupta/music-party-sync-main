@@ -16,6 +16,7 @@ import '../../shared/widgets/page_background.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../core/services/room_service.dart';
 import '../../core/utils/persistence.dart';
+import '../../core/config/app_config.dart';
 import '../../core/services/api_service.dart';
 import '../settings/settings_screen.dart';
 
@@ -172,13 +173,13 @@ class _PlayerScreenState extends State<PlayerScreen>
         playlist.add({
           "title": songName,
           "artist": "Sync Local File",
-          "url": "https://music-party-socket.onrender.com/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}",
+          "url": "${AppConfig.songUrl}?t=${DateTime.now().millisecondsSinceEpoch}",
           "bytes": null,
         });
         artGradients.add([const Color(0xFF8A2387), const Color(0xFFE94057)]);
         existingIndex = playlist.length - 1;
       } else {
-        playlist[existingIndex]["url"] = "https://music-party-socket.onrender.com/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}";
+        playlist[existingIndex]["url"] = "${AppConfig.songUrl}?t=${DateTime.now().millisecondsSinceEpoch}";
       }
       setState(() {
         currentSongIndex = existingIndex;
@@ -296,13 +297,13 @@ class _PlayerScreenState extends State<PlayerScreen>
           playlist.add({
             "title": latestRoom.localSongName!,
             "artist": "Sync Local File",
-            "url": "https://music-party-socket.onrender.com/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}",
+            "url": "${AppConfig.songUrl}?t=${DateTime.now().millisecondsSinceEpoch}",
             "bytes": null,
           });
           artGradients.add([const Color(0xFF8A2387), const Color(0xFFE94057)]);
           existingIndex = playlist.length - 1;
         } else {
-          playlist[existingIndex]["url"] = "https://music-party-socket.onrender.com/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}";
+          playlist[existingIndex]["url"] = "${AppConfig.songUrl}?t=${DateTime.now().millisecondsSinceEpoch}";
         }
         setState(() {
           currentSongIndex = existingIndex;
@@ -447,7 +448,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         final songName = fileName.replaceAll(RegExp(r'\.(mp3|m4a|wav)$'), '');
 
         try {
-          final uploadDio = Dio(BaseOptions(baseUrl: "https://music-party-socket.onrender.com/api"));
+          final uploadDio = Dio(BaseOptions(baseUrl: "${AppConfig.mediaUrl}/api"));
           await uploadDio.post(
             '/upload',
             data: bytes,
@@ -532,6 +533,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void dispose() {
     final isHost = SocketService.instance.userName == room.hostName || Persistence.isHost(room.roomId);
+    SocketService.instance.offPlaybackListeners();
     if (isHost) {
       RoomService.deleteRoom(room.roomId);
     }

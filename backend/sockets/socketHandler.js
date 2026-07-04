@@ -8,11 +8,21 @@ module.exports = (io) => {
       if (!roomId || !rooms[roomId]) return;
       const room = rooms[roomId];
       
-      if (socket.userName && socket.userName === room.hostName) {
-        console.log(`📢 Host ${socket.userName} left/disconnected. Cancelling room ${roomId}`);
-        io.to(roomId).emit("room-cancelled");
-        delete rooms[roomId];
-        saveRooms(rooms);
+      if (socket.userName) {
+        if (socket.userName === room.hostName) {
+          console.log(`📢 Host ${socket.userName} left/disconnected. Cancelling room ${roomId}`);
+          io.to(roomId).emit("room-cancelled");
+          delete rooms[roomId];
+          saveRooms(rooms);
+        } else {
+          const initialLen = room.members.length;
+          room.members = room.members.filter(m => m.name !== socket.userName);
+          if (room.members.length !== initialLen) {
+            console.log(`🗑️ Removed guest ${socket.userName} from room ${roomId}`);
+            saveRooms(rooms);
+            io.to(roomId).emit("room-updated", room);
+          }
+        }
       }
     };
 
@@ -33,6 +43,38 @@ module.exports = (io) => {
       }
       if (userName) {
         socket.userName = userName;
+      }
+
+      if (roomId) {
+        // Auto-create room in Node.js if it doesn't exist (failsafe)
+        if (!rooms[roomId]) {
+          rooms[roomId] = {
+            roomId,
+            roomName: "Music Room",
+            hostName: userName || "Host",
+            members: [],
+            currentSongIndex: -1,
+            isPlaying: false,
+            progress: 0.0,
+            localSongName: null,
+          };
+        }
+        
+        const room = rooms[roomId];
+        if (userName) {
+          const exists = room.members.find(m => m.name === userName);
+          if (!exists) {
+            const isHost = userName === room.hostName;
+            room.members.push({
+              name: userName,
+              host: isHost,
+            });
+            saveRooms(rooms);
+          }
+        }
+        
+        // Broadcast updated room to all connected WebSockets
+        io.to(roomId).emit("room-updated", room);
       }
       
       // Request current playback status from the Host so the guest is synced immediately
