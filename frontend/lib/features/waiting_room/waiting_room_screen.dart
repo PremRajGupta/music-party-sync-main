@@ -5,6 +5,7 @@ import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/services/socket_service.dart';
 import '../../core/services/room_service.dart';
+import '../../core/utils/persistence.dart';
 import '../../models/room.dart';
 import '../../shared/widgets/page_background.dart';
 import '../../shared/widgets/participant_tile.dart';
@@ -68,7 +69,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
 
   @override
   void dispose() {
-    final isHost = SocketService.instance.userName == room.hostName;
+    final isHost = SocketService.instance.userName == room.hostName || Persistence.isHost(room.roomId);
     if (isHost) {
       RoomService.deleteRoom(room.roomId);
     }
@@ -79,7 +80,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isHost = SocketService.instance.userName == room.hostName;
+    final isHost = SocketService.instance.userName == room.hostName || Persistence.isHost(room.roomId);
 
     return Scaffold(
       body: PageBackground(

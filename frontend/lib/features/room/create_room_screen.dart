@@ -5,6 +5,7 @@ import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/services/room_service.dart';
 import '../../core/services/socket_service.dart';
+import '../../core/utils/persistence.dart';
 import '../../models/room.dart';
 import '../../shared/widgets/page_background.dart';
 import '../waiting_room/waiting_room_screen.dart';
@@ -58,6 +59,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       );
 
       SocketService.instance.userName = hostController.text.trim();
+      Persistence.setHost(room.roomId, true);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

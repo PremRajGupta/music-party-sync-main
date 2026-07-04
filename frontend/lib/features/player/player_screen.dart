@@ -15,6 +15,7 @@ import '../../models/room.dart';
 import '../../shared/widgets/page_background.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../core/services/room_service.dart';
+import '../../core/utils/persistence.dart';
 import '../../core/services/api_service.dart';
 import '../settings/settings_screen.dart';
 
@@ -72,7 +73,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         _duration = d;
       });
 
-      final isHost = SocketService.instance.userName == room.hostName;
+      final isHost = SocketService.instance.userName == room.hostName || Persistence.isHost(room.roomId);
       if (!isHost && _tunedIn && !_initialSeekDone && d.inMilliseconds > 0 && progress > 0) {
         _initialSeekDone = true;
         final targetMs = (progress * d.inMilliseconds).toInt();
@@ -90,7 +91,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       });
 
       // Periodic progress sync (every 1 second) if we are the host and playing
-      final isHost = SocketService.instance.userName == room.hostName;
+      final isHost = SocketService.instance.userName == room.hostName || Persistence.isHost(room.roomId);
       if (isHost && isPlaying) {
         final now = DateTime.now();
         if (now.difference(_lastPositionEmit).inMilliseconds > 1000) {
@@ -187,7 +188,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     });
 
     // Listen for host sync requests (when a new guest joins)
-    final isHost = SocketService.instance.userName == room.hostName;
+    final isHost = SocketService.instance.userName == room.hostName || Persistence.isHost(room.roomId);
     if (isHost) {
       SocketService.instance.onRequestHostSync((data) {
         if (!mounted) return;
@@ -276,7 +277,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Future<void> _syncPlaybackWithServer() async {
-    final isHost = SocketService.instance.userName == room.hostName;
+    final isHost = SocketService.instance.userName == room.hostName || Persistence.isHost(room.roomId);
     try {
       final latestRoom = await RoomService.getRoom(room.roomId);
       if (!mounted) return;
@@ -530,7 +531,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
-    final isHost = SocketService.instance.userName == room.hostName;
+    final isHost = SocketService.instance.userName == room.hostName || Persistence.isHost(room.roomId);
     if (isHost) {
       RoomService.deleteRoom(room.roomId);
     }
@@ -547,7 +548,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isHost = SocketService.instance.userName == room.hostName;
+    final isHost = SocketService.instance.userName == room.hostName || Persistence.isHost(room.roomId);
     final desktop = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
