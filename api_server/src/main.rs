@@ -57,7 +57,16 @@ fn handle_client(mut stream: TcpStream, rooms: Rooms) -> std::io::Result<()> {
     let mut parts = request_line.split_whitespace();
     let method = parts.next().unwrap_or_default();
     let path = parts.next().unwrap_or_default();
-    let body = request.split("\r\n\r\n").nth(1).unwrap_or_default();
+
+    let body = if let Some(idx) = request.find("\r\n\r\n") {
+        &request[idx + 4..]
+    } else if let Some(idx) = request.find("\n\n") {
+        &request[idx + 2..]
+    } else {
+        request.split("\r\n\r\n").nth(1).unwrap_or_default()
+    };
+
+    println!("📥 Request: {} {} | Body: {}", method, path, body);
 
     match (method, path) {
         ("OPTIONS", _) => write_response(&mut stream, 204, "No Content", ""),

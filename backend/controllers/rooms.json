@@ -258,5 +258,25 @@
     "progress": 0.33437326174756343,
     "localSongName": "Chunnari Chunnari - Let’s Go! (From &quot;Hai Jawani Toh Ishq Hona Hai&quot;) - Chunnari Chunnari - Let’s Go! (From Hai Jawani Toh Ishq Hona Hai) (320 kbps)",
     "updatedAt": "2026-07-04T04:15:17.333Z"
+  },
+  "SB-5V99TE": {
+    "roomId": "SB-5V99TE",
+    "roomName": "Host",
+    "hostName": "Host",
+    "members": [
+      {
+        "name": "Host",
+        "host": true
+      },
+      {
+        "name": "abc",
+        "host": false
+      }
+    ],
+    "currentSongIndex": -1,
+    "isPlaying": false,
+    "progress": 0.2176169009525351,
+    "localSongName": "Dhurandhar The Revenge - Aari Aari - Dhurandhar The Revenge (320 kbps)",
+    "updatedAt": "2026-07-04T04:33:58.924Z"
   }
 }

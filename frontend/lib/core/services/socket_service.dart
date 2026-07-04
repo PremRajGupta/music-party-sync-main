@@ -10,9 +10,8 @@ class SocketService {
   SocketService._internal();
 
   void connect() {
-    final host = Uri.base.host.isNotEmpty ? Uri.base.host : "127.0.0.1";
     socket = IO.io(
-      "http://$host:5001",
+      "https://music-party-socket.onrender.com",
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()

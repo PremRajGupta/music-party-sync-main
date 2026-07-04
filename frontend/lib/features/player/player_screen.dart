@@ -171,13 +171,13 @@ class _PlayerScreenState extends State<PlayerScreen>
         playlist.add({
           "title": songName,
           "artist": "Sync Local File",
-          "url": "http://$_currentHost:5001/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}",
+          "url": "https://music-party-socket.onrender.com/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}",
           "bytes": null,
         });
         artGradients.add([const Color(0xFF8A2387), const Color(0xFFE94057)]);
         existingIndex = playlist.length - 1;
       } else {
-        playlist[existingIndex]["url"] = "http://$_currentHost:5001/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}";
+        playlist[existingIndex]["url"] = "https://music-party-socket.onrender.com/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}";
       }
       setState(() {
         currentSongIndex = existingIndex;
@@ -283,13 +283,13 @@ class _PlayerScreenState extends State<PlayerScreen>
           playlist.add({
             "title": latestRoom.localSongName!,
             "artist": "Sync Local File",
-            "url": "http://$_currentHost:5001/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}",
+            "url": "https://music-party-socket.onrender.com/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}",
             "bytes": null,
           });
           artGradients.add([const Color(0xFF8A2387), const Color(0xFFE94057)]);
           existingIndex = playlist.length - 1;
         } else {
-          playlist[existingIndex]["url"] = "http://$_currentHost:5001/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}";
+          playlist[existingIndex]["url"] = "https://music-party-socket.onrender.com/static/song.mp3?t=${DateTime.now().millisecondsSinceEpoch}";
         }
         setState(() {
           currentSongIndex = existingIndex;
@@ -434,7 +434,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         final songName = fileName.replaceAll(RegExp(r'\.(mp3|m4a|wav)$'), '');
 
         try {
-          final uploadDio = Dio(BaseOptions(baseUrl: "http://$_currentHost:5001/api"));
+          final uploadDio = Dio(BaseOptions(baseUrl: "https://music-party-socket.onrender.com/api"));
           await uploadDio.post(
             '/upload',
             data: bytes,
