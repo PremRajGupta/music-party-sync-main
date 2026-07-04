@@ -113,6 +113,10 @@ class SocketService {
     socket.off("room-cancelled");
   }
 
+  void disconnect() {
+    socket.disconnect();
+  }
+
   void dispose() {
     socket.dispose();
   }
