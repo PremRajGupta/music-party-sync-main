@@ -1,0 +1,1 @@
+C:\Users\gupta\OneDrive\Pictures\music-party-sync-main\music-party-sync-main\target\debug\api_server.exe: C:\Users\gupta\OneDrive\Pictures\music-party-sync-main\music-party-sync-main\api_server\src\main.rs
